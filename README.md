@@ -21,7 +21,7 @@ For approved electives outside IEOR, the course lists are read from [the IEOR MS
 
 ### Data Overview
 
-Raw scraped files are merged, cleaned, and filtered by `data_cleaning.py` into a single master dataset: `Spring2026_course_info_master.csv`.
+Raw scraped files are merged, cleaned, and filtered by `data_cleaning.py` into a single dataset: `Spring2026_course_info_master.csv`.
 
 **Cleaning steps include:**
 - Merging IEOR, non-IEOR, and CBS course tables with their respective program eligibility tables (MSOR, MSIE, MSBA, MSE, MSFE approval status)
