@@ -150,8 +150,20 @@ with chat_col:
         with st.chat_message(m["role"]):
             st.markdown(m["text"])
 
-    user_msg = st.chat_input("e.g. 'plan my Spring 2026 schedule'")
-    if user_msg:
+    user_msg = st.text_area(
+        "Your career preference & any other notes",
+        key="user_input",
+        placeholder="Your career preference",
+        height=100,
+        label_visibility="collapsed",
+    )
+    submitted = st.button(
+        "🎓 开始生成课程安排",
+        type="primary",
+        use_container_width=True,
+        disabled=not user_msg.strip(),
+    )
+    if submitted and user_msg.strip():
         prefs_summary = (
             f"\n\n[UI preferences]\n"
             f"- target_credits: {target_credits}\n"
