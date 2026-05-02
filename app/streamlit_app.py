@@ -2,7 +2,7 @@
 import json
 import sys
 import uuid
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import streamlit as st
@@ -25,20 +25,30 @@ except Exception:
 
 st.set_page_config(page_title="IEOR Course Planner", page_icon="🎓", layout="wide")
 
+CAREER_PRESETS = [
+    "Quant Trading",
+    "Data Science & ML",
+    "Tech PM",
+    "Consulting",
+    "Supply Chain",
+    "Undecided",
+    "Other",
+]
+
 
 # ─────────────────────────────────────────
 # Session state
 # ─────────────────────────────────────────
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 if "current_plan" not in st.session_state:
     st.session_state.current_plan = None
+if "last_error" not in st.session_state:
+    st.session_state.last_error = None
 
 
 # ─────────────────────────────────────────
-# Sidebar — student picker + preference form
+# Sidebar — student picker + preference form + Generate
 # ─────────────────────────────────────────
 with st.sidebar:
     st.markdown("### Student profile")
@@ -73,13 +83,13 @@ with st.sidebar:
     )
     earliest = st.time_input(
         "Earliest start",
-        value=__import__("datetime").datetime.strptime(
+        value=datetime.strptime(
             student.preferences.earliest_start if student else "09:00", "%H:%M"
         ).time(),
     )
     latest = st.time_input(
         "Latest end",
-        value=__import__("datetime").datetime.strptime(
+        value=datetime.strptime(
             student.preferences.latest_end if student else "21:00", "%H:%M"
         ).time(),
     )
@@ -88,34 +98,47 @@ with st.sidebar:
         index=["any", "in-person", "online ok"].index(student.preferences.modality if student else "any"),
         horizontal=True,
     )
-    career = st.radio(
-        "Career direction",
-        ["Quant Trading", "Data Science & ML", "Tech PM", "Consulting", "Supply Chain", "Undecided"],
-        index=0 if not student else max(
-            0,
-            ["Quant Trading", "Data Science & ML", "Tech PM", "Consulting", "Supply Chain", "Undecided"].index(student.preferences.career_direction)
-            if student.preferences.career_direction in ["Quant Trading", "Data Science & ML", "Tech PM", "Consulting", "Supply Chain", "Undecided"]
-            else 0,
+
+    default_career = student.preferences.career_direction if student else "Undecided"
+    career_index = CAREER_PRESETS.index(default_career) if default_career in CAREER_PRESETS else 0
+    career_choice = st.radio("Career direction", CAREER_PRESETS, index=career_index)
+    if career_choice == "Other":
+        career_other = st.text_input(
+            "Describe your career direction",
+            placeholder="e.g. Climate-tech ops, Healthcare analytics…",
+        )
+        career = career_other.strip() or "Other (unspecified)"
+    else:
+        career = career_choice
+
+    user_input = st.text_area(
+        "Your career preference & anything else",
+        key="user_input",
+        placeholder=(
+            "e.g. interested in financial applications of ML; "
+            "prefer project-based courses; avoid Prof. X…"
         ),
-    )
-    notes = st.text_area(
-        "Anything else?",
-        value=student.preferences.free_text_notes if student else "",
-        placeholder="e.g. avoid Prof. X, prefer project-based courses…",
+        height=120,
     )
 
-    if st.button("Reset chat", use_container_width=True):
+    submitted = st.button(
+        "🎓 Generate my schedule",
+        type="primary",
+        use_container_width=True,
+    )
+
+    if st.button("Reset", use_container_width=True):
         st.session_state.session_id = str(uuid.uuid4())
-        st.session_state.messages = []
         st.session_state.current_plan = None
+        st.session_state.last_error = None
         st.rerun()
 
 
 # ─────────────────────────────────────────
-# Main — header + progress
+# Main — title + progress
 # ─────────────────────────────────────────
 st.title("🎓 Columbia IEOR Course Planner")
-st.caption("Pick a student, set preferences, then ask the agent to plan your term.")
+st.caption("Set your preferences in the sidebar, then click Generate.")
 
 if student and program:
     progress = compute_progress(student_id)
@@ -140,97 +163,74 @@ st.markdown("---")
 
 
 # ─────────────────────────────────────────
-# Chat
+# Run agent on submit
 # ─────────────────────────────────────────
-chat_col, plan_col = st.columns([1, 1])
-
-with chat_col:
-    st.markdown("### Chat")
-    for m in st.session_state.messages:
-        with st.chat_message(m["role"]):
-            st.markdown(m["text"])
-
-    user_msg = st.text_area(
-        "Your career preference & any other notes",
-        key="user_input",
-        placeholder="Your career preference",
-        height=100,
-        label_visibility="collapsed",
+if submitted:
+    user_msg = (user_input or "").strip() or "Plan my schedule for this term."
+    prefs_summary = (
+        f"\n\n[UI preferences]\n"
+        f"- target_credits: {target_credits}\n"
+        f"- days_off: {days_off}\n"
+        f"- earliest_start: {earliest.strftime('%H:%M')}\n"
+        f"- latest_end: {latest.strftime('%H:%M')}\n"
+        f"- modality: {modality}\n"
+        f"- career_direction: {career}\n"
     )
-    submitted = st.button(
-        "🎓 Generate my schedule",
-        type="primary",
-        use_container_width=True,
-        disabled=not user_msg.strip(),
-    )
-    if submitted and user_msg.strip():
-        prefs_summary = (
-            f"\n\n[UI preferences]\n"
-            f"- target_credits: {target_credits}\n"
-            f"- days_off: {days_off}\n"
-            f"- earliest_start: {earliest.strftime('%H:%M')}\n"
-            f"- latest_end: {latest.strftime('%H:%M')}\n"
-            f"- modality: {modality}\n"
-            f"- career_direction: {career}\n"
-            f"- free_text_notes: {notes}\n"
-        )
-        full_msg = (
-            f"Student id: {student_id}. {user_msg}{prefs_summary}"
-        )
-        st.session_state.messages.append({"role": "user", "text": user_msg})
-        with st.chat_message("user"):
-            st.markdown(user_msg)
+    full_msg = f"Student id: {student_id}. {user_msg}{prefs_summary}"
 
-        with st.chat_message("assistant"):
-            with st.spinner("Planning…"):
+    with st.spinner("Planning your schedule…"):
+        try:
+            events, state = run_sync(
+                user_id=student_id,
+                session_id=st.session_state.session_id,
+                message=full_msg,
+            )
+            plan = state.get("current_plan")
+            if isinstance(plan, str):
                 try:
-                    events, state = run_sync(
-                        user_id=student_id,
-                        session_id=st.session_state.session_id,
-                        message=full_msg,
-                    )
-                    final_text_parts = [
-                        e["text"] for e in events
-                        if e["type"] == "text" and e.get("author") == "course_planner_coordinator"
-                    ]
-                    reply = "\n\n".join(final_text_parts) or "_(no response)_"
-                    st.markdown(reply)
-                    st.session_state.messages.append({"role": "assistant", "text": reply})
-
-                    plan = state.get("current_plan")
-                    if plan:
-                        if isinstance(plan, str):
-                            try:
-                                plan = json.loads(plan)
-                            except Exception:
-                                plan = None
-                        if plan:
-                            st.session_state.current_plan = plan
-                except Exception as e:
-                    st.error(f"Agent error: {e}")
+                    plan = json.loads(plan)
+                except Exception:
+                    plan = None
+            if plan:
+                st.session_state.current_plan = plan
+                st.session_state.last_error = None
+            else:
+                st.session_state.last_error = "Agent finished but did not produce a plan."
+        except Exception as e:
+            st.session_state.last_error = f"Agent error: {e}"
 
 
 # ─────────────────────────────────────────
-# Plan rendering
+# Recommended schedule (full-width)
 # ─────────────────────────────────────────
-with plan_col:
-    st.markdown("### Recommended schedule")
-    plan = st.session_state.current_plan
-    if not plan or not plan.get("candidates"):
-        st.info("No plan yet — ask the agent in chat to generate one.")
-    else:
-        st.markdown(f"_{plan.get('summary', '')}_")
-        tabs = st.tabs([c["name"] for c in plan["candidates"]])
-        core_codes = (
-            {c["course_code"].upper() for c in load_program_obj(student.program).model_dump()["core_courses"]}
-            if student else set()
-        )
+st.markdown("### Recommended schedule")
 
-        for tab, cand in zip(tabs, plan["candidates"]):
-            with tab:
-                st.markdown(f"**Total credits:** {cand['total_credits']:.1f}")
-                st.markdown(f"**Why:** {cand['rationale']}")
+if st.session_state.last_error:
+    st.error(st.session_state.last_error)
 
+plan = st.session_state.current_plan
+if not plan or not plan.get("candidates"):
+    st.info("No plan yet — fill in preferences in the sidebar and click **Generate my schedule**.")
+else:
+    if plan.get("summary"):
+        st.markdown(f"_{plan['summary']}_")
+
+    tabs = st.tabs([c["name"] for c in plan["candidates"]])
+    core_codes = (
+        {c["course_code"].upper() for c in load_program_obj(student.program).model_dump()["core_courses"]}
+        if student else set()
+    )
+
+    for tab, cand in zip(tabs, plan["candidates"]):
+        with tab:
+            top = st.columns([1, 1])
+            top[0].metric("Total credits", f"{cand['total_credits']:.1f}")
+            top[1].caption(cand.get("tradeoffs") or "")
+            st.markdown(f"**Why:** {cand['rationale']}")
+
+            col_courses, col_cal = st.columns([1, 1])
+
+            with col_courses:
                 st.markdown("**Courses**")
                 for sk in cand["sections"]:
                     s = get_section(sk)
@@ -243,7 +243,12 @@ with plan_col:
                         f"{s['credits']} cr · {days_str} {s['time_start']:.2f}–{s['time_end']:.2f} · "
                         f"{s['instructor']}"
                     )
+                if cand.get("requirement_coverage"):
+                    with st.expander("Requirement coverage"):
+                        for line in cand["requirement_coverage"]:
+                            st.markdown(f"- {line}")
 
+            with col_cal:
                 if HAS_CALENDAR:
                     events = candidate_events(cand["sections"], core_codes=core_codes)
                     calendar(
@@ -255,27 +260,20 @@ with plan_col:
                             "weekends": False,
                             "headerToolbar": False,
                             "allDaySlot": False,
-                            "height": 500,
+                            "height": 480,
                         },
                         key=f"cal_{cand['name']}",
                     )
 
-                if cand.get("requirement_coverage"):
-                    with st.expander("Requirement coverage"):
-                        for line in cand["requirement_coverage"]:
-                            st.markdown(f"- {line}")
-                if cand.get("tradeoffs"):
-                    st.caption(f"Trade-off: {cand['tradeoffs']}")
-
-                ics = build_ics(
-                    cand["sections"],
-                    term_start=date(2026, 1, 20),
-                    term_end=date(2026, 5, 8),
-                )
-                st.download_button(
-                    "Download .ics (any calendar app)",
-                    data=ics,
-                    file_name=f"{cand['name'].replace(' ', '_')}.ics",
-                    mime="text/calendar",
-                    key=f"ics_{cand['name']}",
-                )
+            ics = build_ics(
+                cand["sections"],
+                term_start=date(2026, 1, 20),
+                term_end=date(2026, 5, 8),
+            )
+            st.download_button(
+                "Download .ics (any calendar app)",
+                data=ics,
+                file_name=f"{cand['name'].replace(' ', '_')}.ics",
+                mime="text/calendar",
+                key=f"ics_{cand['name']}",
+            )
