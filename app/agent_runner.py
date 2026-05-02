@@ -1,6 +1,11 @@
 """Thin wrapper around google-adk Runner for use from Streamlit."""
 import asyncio
+import os
 from typing import AsyncIterator
+
+# Silence ADK's "use native Gemini instead of LiteLLM" advice — we chose
+# LiteLLM intentionally for future model-portability.
+os.environ.setdefault("ADK_SUPPRESS_GEMINI_LITELLM_WARNINGS", "true")
 
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
