@@ -1,0 +1,33 @@
+{
+  "student_id": "user_002",
+  "name": "Alex Rodriguez",
+  "program": "MSOR",
+  "start_term": "Fall 2025",
+  "expected_graduation": "Spring 2027",
+  "target_term": "Spring 2026",
+
+  "completed_courses": [
+    {"course_code": "IEOR4004", "title": "Optimization Models and Methods", "credits": 3.0, "term": "Fall 2025"},
+    {"course_code": "IEOR4150", "title": "Introduction to Probability and Statistics", "credits": 3.0, "term": "Fall 2025"},
+    {"course_code": "IEOR4106", "title": "Stochastic Models", "credits": 3.0, "term": "Fall 2025"},
+    {"course_code": "IEOR4511", "title": "Management Consulting", "credits": 3.0, "term": "Fall 2025"},
+    {"course_code": "IEOR4532", "title": "Business Analytics for Operations", "credits": 1.5, "term": "Fall 2025"}
+  ],
+
+  "constraints": {
+    "min_credits_this_term": 9,
+    "max_credits_this_term": 16.5
+  },
+
+  "preferences": {
+    "career_direction": "Consulting",
+    "days_off": ["Monday"],
+    "earliest_start": "09:00",
+    "latest_end": "19:00",
+    "max_days_on_campus": 5,
+    "prefer_compact_schedule": false,
+    "modality": "any",
+    "course_load": "heavy",
+    "free_text_notes": "Want to round out the quant core (4404 Simulation) and add one CBS strategy elective."
+  }
+}

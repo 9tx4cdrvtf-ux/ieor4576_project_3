@@ -1,6 +1,112 @@
 # Columbia IEOR Course Selection Assistant
 
-<加一个overview。。。。。。。。。。。。。。。。。>
+An agentic course-planning assistant for Columbia University IEOR graduate
+students. Pick a student profile, set your preferences, and the agent will
+load your degree progress, search the Spring 2026 catalog by topic and
+constraints, generate 1–3 candidate schedules, run an internal critique pass
+to validate against both objective rules and your preferences, and present
+the final plan as an interactive calendar with one-click `.ics` export.
+
+**Live demo:** _(deploy URL pending)_
+
+---
+
+## Architecture
+
+```
+            ┌─────────────────────────────┐
+            │   Streamlit UI (form+chat)  │
+            └──────────────┬──────────────┘
+                           │
+            ┌──────────────▼──────────────┐
+            │   Coordinator (LlmAgent)    │  Gemini 2.5 Flash
+            │   Google ADK + LiteLLM      │
+            └─┬────────────┬────────────┬─┘
+              │            │            │
+   ┌──────────▼──┐  ┌──────▼─────┐  ┌──▼──────────────────┐
+   │ Tools (Py)  │  │ RAG search │  │ propose_schedule    │  Gemini 2.5 Pro
+   │             │  │ ChromaDB + │  │ critique_schedule   │  (sub-agents)
+   │ get_student │  │ Vertex AI  │  │ structured output   │
+   │ get_program │  │ embeddings │  │ via output_schema   │
+   │ compute_…   │  │            │  └─────────────────────┘
+   │ check_…     │  └────────────┘
+   │ validate_…  │
+   └─────────────┘
+```
+
+### Class concepts used
+
+1. **RAG with metadata filtering** — semantic search over Spring 2026 catalog
+   combined with hard filters (program eligibility, days off, time-of-day,
+   modality). See [agent/tools/search.py](agent/tools/search.py) and
+   [index_info.py](index_info.py).
+2. **Tool use / function calling** — six deterministic Python tools for the
+   coordinator. See [agent/coordinator.py:18-29](agent/coordinator.py).
+3. **Multi-agent orchestration** — root coordinator delegates to two
+   specialist sub-agents (planner + critic) wrapped as `AgentTool`. See
+   [agent/coordinator.py](agent/coordinator.py),
+   [agent/planner.py](agent/planner.py), [agent/critic.py](agent/critic.py).
+4. **Structured output / schema-bound LLM** — sub-agents emit Pydantic-
+   typed JSON (`SchedulePlan`, `CritiqueReport`) via ADK's `output_schema`.
+   See [agent/schemas.py](agent/schemas.py).
+5. **Hybrid symbolic + LLM (critic loop)** — hard constraints (time
+   conflicts, eligibility, credit caps) live in pure Python
+   ([agent/tools/schedule.py](agent/tools/schedule.py)); soft preferences
+   (career fit, "no Friday class", compactness) go through the critic
+   sub-agent. The coordinator runs at most one internal refinement pass on
+   critic feedback before presenting to the user.
+
+---
+
+## Run locally
+
+```bash
+# 1. Install
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Auth to Vertex AI (one-time)
+gcloud auth application-default login
+export GOOGLE_CLOUD_PROJECT=<your-project>
+export GOOGLE_CLOUD_LOCATION=us-central1
+export GOOGLE_GENAI_USE_VERTEXAI=TRUE
+
+# 3. Launch
+streamlit run app/streamlit_app.py
+```
+
+The first launch builds nothing new — the ChromaDB index in `chroma_db/`
+is pre-built. To re-embed from scratch (after editing the catalog), run
+`python index_info.py`.
+
+---
+
+## Repo layout
+
+```
+agent/
+  schemas.py              # Pydantic models shared everywhere
+  prompts.py              # All LLM instructions in one file
+  coordinator.py          # Root LlmAgent — tool + sub-agent wiring
+  planner.py              # propose_schedule sub-agent
+  critic.py               # critique_schedule sub-agent (internal use only)
+  tools/
+    student.py            # get_student / get_program (mock school API)
+    progress.py           # compute_progress (deterministic)
+    courses.py            # CSV loader for Spring 2026 catalog
+    search.py             # ChromaDB semantic search w/ metadata filters
+    schedule.py           # check_conflicts / validate_schedule
+app/
+  streamlit_app.py        # Streamlit front-end
+  agent_runner.py         # ADK Runner wrapper
+  render.py               # Calendar event + .ics builder
+mock_data/
+  programs/msor.json      # MSOR graduation rules
+  students/user_*.json    # Mock student profiles
+chroma_db/                # Pre-built vector index (commit-tracked)
+web_scrawl/               # Original scrapers + cleaned catalog CSV
+index_info.py             # Re-build the ChromaDB index
+```
 
 ---
 
