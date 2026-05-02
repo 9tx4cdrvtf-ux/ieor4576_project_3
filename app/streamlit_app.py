@@ -158,7 +158,7 @@ with chat_col:
         label_visibility="collapsed",
     )
     submitted = st.button(
-        "🎓 开始生成课程安排",
+        "🎓 Generate my schedule",
         type="primary",
         use_container_width=True,
         disabled=not user_msg.strip(),
