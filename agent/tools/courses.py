@@ -32,6 +32,26 @@ def load_catalog() -> pd.DataFrame:
     return df
 
 
+def _s(val, default: str = "") -> str:
+    """Coerce to clean string, mapping NaN/None to default."""
+    if val is None or (isinstance(val, float) and pd.isna(val)) or pd.isna(val):
+        return default
+    return str(val)
+
+
+def _f(val, default: float = 0.0) -> float:
+    """Coerce to clean float, mapping NaN/None to default. JSON-safe."""
+    try:
+        if val is None or pd.isna(val):
+            return default
+        f = float(val)
+        if f != f:  # NaN check (NaN != NaN)
+            return default
+        return f
+    except (TypeError, ValueError):
+        return default
+
+
 def get_section(section_key: str) -> dict | None:
     df = load_catalog()
     rows = df[df["Section key"] == section_key]
@@ -39,21 +59,21 @@ def get_section(section_key: str) -> dict | None:
         return None
     r = rows.iloc[0]
     return {
-        "section_key": r["Section key"],
-        "course_code": r["Course Code"],
-        "course_name": r["Course Name"],
-        "short_name": r.get("Short Name", ""),
-        "instructor": r["Instructor"] if pd.notna(r["Instructor"]) else "TBA",
-        "credits": float(r["Points"]),
-        "days": list(r["Day"]),
-        "time_start": float(r["Time_start"]),
-        "time_end": float(r["Time_end"]),
-        "modality": r["Method of Instruction"],
-        "location": r["Location"] if pd.notna(r["Location"]) else "",
-        "description": r["Course Description"] if pd.notna(r["Course Description"]) else "",
-        "msor": r.get("MSOR", ""),
-        "msie": r.get("MSIE", ""),
-        "msba": r.get("MSBA", ""),
-        "mse": r.get("MSE", ""),
-        "msfe": r.get("MSFE", ""),
+        "section_key": _s(r["Section key"]),
+        "course_code": _s(r["Course Code"]),
+        "course_name": _s(r["Course Name"]),
+        "short_name": _s(r.get("Short Name", "")),
+        "instructor": _s(r["Instructor"], default="TBA"),
+        "credits": _f(r["Points"]),
+        "days": list(r["Day"]) if isinstance(r["Day"], list) else [],
+        "time_start": _f(r["Time_start"]),
+        "time_end": _f(r["Time_end"]),
+        "modality": _s(r["Method of Instruction"]),
+        "location": _s(r["Location"]),
+        "description": _s(r["Course Description"]),
+        "msor": _s(r.get("MSOR", "")),
+        "msie": _s(r.get("MSIE", "")),
+        "msba": _s(r.get("MSBA", "")),
+        "mse": _s(r.get("MSE", "")),
+        "msfe": _s(r.get("MSFE", "")),
     }

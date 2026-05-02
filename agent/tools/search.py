@@ -123,7 +123,15 @@ def search_courses(
         if full is None:
             continue
         full["eligibility"] = full.get(program.lower(), "")
-        full["similarity"] = round(1.0 - float(dist), 3) if dist is not None else None
+        sim: float | None = None
+        if dist is not None:
+            try:
+                d = float(dist)
+                if d == d:  # not NaN
+                    sim = round(1.0 - d, 3)
+            except (TypeError, ValueError):
+                sim = None
+        full["similarity"] = sim
         out.append(full)
 
     return out
