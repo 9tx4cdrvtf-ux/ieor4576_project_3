@@ -1,7 +1,8 @@
 """Thin wrapper around google-adk Runner for use from Streamlit."""
 import asyncio
+import json
 import os
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 # Silence ADK's "use native Gemini instead of LiteLLM" advice — we chose
 # LiteLLM intentionally for future model-portability.
@@ -33,8 +34,32 @@ async def ensure_session(user_id: str, session_id: str) -> None:
         )
 
 
+def _coerce_response(raw: Any) -> Any:
+    """function_response.response can be dict, str, or proto. Normalize to Python."""
+    if raw is None:
+        return None
+    if isinstance(raw, (dict, list)):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except Exception:
+            return raw
+    # protobuf-ish — try to_dict / dict()
+    for attr in ("to_dict", "model_dump"):
+        if hasattr(raw, attr):
+            try:
+                return getattr(raw, attr)()
+            except Exception:
+                pass
+    try:
+        return dict(raw)
+    except Exception:
+        return str(raw)
+
+
 async def stream_agent(user_id: str, session_id: str, message: str) -> AsyncIterator[dict]:
-    """Yield dicts {type, text} as the agent emits events."""
+    """Yield dicts {type, ...} as the agent emits events."""
     await ensure_session(user_id, session_id)
     content = genai_types.Content(role="user", parts=[genai_types.Part(text=message)])
     async for event in _runner.run_async(
@@ -52,9 +77,11 @@ async def stream_agent(user_id: str, session_id: str, message: str) -> AsyncIter
                         "author": event.author,
                     }
                 elif getattr(part, "function_response", None):
+                    fr = part.function_response
                     yield {
                         "type": "tool_result",
-                        "name": part.function_response.name,
+                        "name": fr.name,
+                        "response": _coerce_response(getattr(fr, "response", None)),
                         "author": event.author,
                     }
 
@@ -66,8 +93,35 @@ async def get_state(user_id: str, session_id: str) -> dict:
     return dict(sess.state) if sess else {}
 
 
-def run_sync(user_id: str, session_id: str, message: str) -> tuple[list[dict], dict]:
-    """Synchronous helper for Streamlit: returns (events, final_state)."""
+def _extract_plan(events: list[dict]) -> dict | None:
+    """Find the latest propose_schedule tool result and return its payload as dict.
+
+    AgentTool-wrapped sub-agents do NOT honor output_key into session.state;
+    we have to scrape the function_response from the event stream instead.
+    """
+    plan = None
+    for ev in events:
+        if ev.get("type") != "tool_result" or ev.get("name") != "propose_schedule":
+            continue
+        resp = ev.get("response")
+        # Some ADK wrappers wrap the result in {"result": {...}} or {"output": {...}}
+        if isinstance(resp, dict):
+            for key in ("result", "output", "value"):
+                if key in resp and isinstance(resp[key], (dict, str)):
+                    resp = resp[key]
+                    break
+        if isinstance(resp, str):
+            try:
+                resp = json.loads(resp)
+            except Exception:
+                continue
+        if isinstance(resp, dict) and "candidates" in resp:
+            plan = resp
+    return plan
+
+
+def run_sync(user_id: str, session_id: str, message: str) -> tuple[list[dict], dict, dict | None]:
+    """Synchronous helper for Streamlit: returns (events, final_state, plan)."""
     async def _go():
         events = []
         async for ev in stream_agent(user_id, session_id, message):
@@ -75,4 +129,11 @@ def run_sync(user_id: str, session_id: str, message: str) -> tuple[list[dict], d
         state = await get_state(user_id, session_id)
         return events, state
 
-    return asyncio.run(_go())
+    events, state = asyncio.run(_go())
+    plan = state.get("current_plan") or _extract_plan(events)
+    if isinstance(plan, str):
+        try:
+            plan = json.loads(plan)
+        except Exception:
+            plan = None
+    return events, state, plan

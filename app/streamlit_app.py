@@ -45,6 +45,10 @@ if "current_plan" not in st.session_state:
     st.session_state.current_plan = None
 if "last_error" not in st.session_state:
     st.session_state.last_error = None
+if "last_events" not in st.session_state:
+    st.session_state.last_events = []
+if "last_state" not in st.session_state:
+    st.session_state.last_state = {}
 
 
 # ─────────────────────────────────────────
@@ -180,17 +184,13 @@ if submitted:
 
     with st.spinner("Planning your schedule…"):
         try:
-            events, state = run_sync(
+            events, state, plan = run_sync(
                 user_id=student_id,
                 session_id=st.session_state.session_id,
                 message=full_msg,
             )
-            plan = state.get("current_plan")
-            if isinstance(plan, str):
-                try:
-                    plan = json.loads(plan)
-                except Exception:
-                    plan = None
+            st.session_state.last_events = events
+            st.session_state.last_state = state
             if plan:
                 st.session_state.current_plan = plan
                 st.session_state.last_error = None
@@ -207,6 +207,22 @@ st.markdown("### Recommended schedule")
 
 if st.session_state.last_error:
     st.error(st.session_state.last_error)
+
+# Debug panel — show what the agent actually did when something looks off
+if st.session_state.last_events:
+    with st.expander("🔍 Agent trace (debug)", expanded=bool(st.session_state.last_error)):
+        st.markdown("**Tool calls / sub-agent invocations**")
+        for ev in st.session_state.last_events:
+            t = ev.get("type")
+            if t == "tool_call":
+                st.markdown(f"- **call** `{ev['name']}` ({ev.get('author')}) — args: `{ev.get('args')}`")
+            elif t == "tool_result":
+                resp = ev.get("response")
+                preview = json.dumps(resp, default=str)[:300] if resp is not None else "—"
+                st.markdown(f"- **result** `{ev['name']}` → `{preview}…`")
+            elif t == "text":
+                st.markdown(f"- **text** ({ev.get('author')}): {ev.get('text','')[:200]}")
+        st.markdown("**Final session.state keys:** " + ", ".join(st.session_state.last_state.keys()) or "(empty)")
 
 plan = st.session_state.current_plan
 if not plan or not plan.get("candidates"):
