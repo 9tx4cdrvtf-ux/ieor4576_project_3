@@ -10,6 +10,7 @@ import chromadb
 from chromadb import Documents, Embeddings, EmbeddingFunction
 from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
 
+from agent.tools._sanitize import nan_safe
 from agent.tools.courses import get_section
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +45,7 @@ _DAY_FLAGS = {
 }
 
 
+@nan_safe
 def search_courses(
     query: str,
     program: str = "MSOR",

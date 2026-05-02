@@ -1,5 +1,6 @@
 """Deterministic schedule checks: time conflicts, eligibility, credit caps."""
 from agent.schemas import Conflict
+from agent.tools._sanitize import nan_safe
 from agent.tools.courses import get_section
 from agent.tools.student import load_student_obj
 
@@ -10,6 +11,7 @@ def _overlap(a_start: float, a_end: float, b_start: float, b_end: float) -> tupl
     return (s, e) if s < e else None
 
 
+@nan_safe
 def check_conflicts(section_keys: list[str]) -> list[dict]:
     """Find time overlaps between any pair of sections that share at least one weekday.
 
@@ -40,6 +42,7 @@ def check_conflicts(section_keys: list[str]) -> list[dict]:
     return conflicts
 
 
+@nan_safe
 def validate_schedule(section_keys: list[str], student_id: str) -> dict:
     """Run all hard checks on a proposed schedule for a student.
 

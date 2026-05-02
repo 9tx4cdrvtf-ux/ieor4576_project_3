@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from agent.schemas import ProgramRules, StudentProfile
+from agent.tools._sanitize import nan_safe
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STUDENTS_DIR = REPO_ROOT / "mock_data" / "students"
@@ -25,6 +26,7 @@ def list_students() -> list[dict]:
     return out
 
 
+@nan_safe
 def get_student(student_id: str) -> dict:
     """Look up a student profile by id. Returns the full StudentProfile as a dict.
 
@@ -38,6 +40,7 @@ def get_student(student_id: str) -> dict:
     return profile.model_dump()
 
 
+@nan_safe
 def get_program(program_id: str) -> dict:
     """Look up program graduation requirements by program id (e.g. 'MSOR').
 

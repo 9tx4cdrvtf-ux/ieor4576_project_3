@@ -4,6 +4,7 @@ This is the agent's source of truth for what's required and what's left.
 It must never be computed by the LLM — only by this function.
 """
 from agent.schemas import ProgressReport, StudentProfile, ProgramRules
+from agent.tools._sanitize import nan_safe
 from agent.tools.student import load_student_obj, load_program_obj
 
 
@@ -61,6 +62,7 @@ def compute_progress_report(student: StudentProfile, program: ProgramRules) -> P
     )
 
 
+@nan_safe
 def compute_progress(student_id: str) -> dict:
     """Compute the student's degree progress against their program requirements.
 
