@@ -1,0 +1,24 @@
+{
+  "program_id": "MSOR",
+  "name": "Master of Science in Operations Research",
+  "total_credits_required": 30.0,
+  "department_credits_required": 18.0,
+  "department_prefixes": ["IEOR", "CSOR", "ECIE", "SIEO"],
+  "core_courses": [
+    {"course_code": "IEOR4199", "title": "MS IEOR Quantitative Bootcamp", "credits": 0.0, "typical_term": "First"},
+    {"course_code": "IEOR4004", "title": "Optimization Models and Methods", "credits": 3.0, "typical_term": "First"},
+    {"course_code": "IEOR4150", "title": "Introduction to Probability and Statistics", "credits": 3.0, "typical_term": "First"},
+    {"course_code": "IEOR4106", "title": "Stochastic Models", "credits": 3.0, "typical_term": "Second"},
+    {"course_code": "IEOR4404", "title": "Simulation", "credits": 3.0, "typical_term": "Any"},
+    {"course_code": "ENGIE4000", "title": "Professional Development and Leadership", "credits": 0.0, "typical_term": "Any"}
+  ],
+  "excluded_prefixes": ["ACTU", "BUSI", "COPR", "IKNS", "SUMA", "FUND"],
+  "approved_external_schools": [
+    "Columbia Business School",
+    "School of International and Public Affairs",
+    "Graduate School of Arts and Sciences",
+    "Law School"
+  ],
+  "eligibility_field": "MSOR",
+  "notes": "Students must take at least 18 points in IEOR-prefix departments and at least 30 points total at Columbia. SPS courses (ACTU/BUSI/COPR/IKNS/SUMA/FUND) do not count."
+}
