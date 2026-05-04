@@ -13,6 +13,9 @@ import { downloadICSFile, generateGoogleCalendarUrl } from '@/lib/calendar-expor
 interface ScheduleResultsProps {
   studentId: string;
   courses: Course[];
+  isGenerating: boolean;
+  careerText: string;
+  careerTags: string[];
   onKeep: (courseId: string) => void;
   onDelete: (courseId: string) => void;
   onSelectAlternative: (courseId: string, alternativeId: string) => void;
@@ -21,6 +24,9 @@ interface ScheduleResultsProps {
 export function ScheduleResults({
   studentId,
   courses,
+  isGenerating,
+  careerText,
+  careerTags,
   onKeep,
   onDelete,
   onSelectAlternative,
@@ -44,6 +50,25 @@ export function ScheduleResults({
       window.open(url, '_blank');
     });
   };
+
+  if (isGenerating) {
+    return (
+      <Card className="border-border/50 h-[400px] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative h-12 w-12 mx-auto">
+            <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+          </div>
+          <div>
+            <p className="text-lg font-medium text-foreground">Generating…</p>
+            <p className="text-sm text-muted-foreground">
+              Agents are retrieving courses, picking sections, and verifying conflicts.
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   if (courses.length === 0) {
     return (
@@ -163,6 +188,8 @@ export function ScheduleResults({
                 course={course}
                 studentId={studentId}
                 fullPlan={courses.filter((c) => c.status !== 'deleted')}
+                careerText={careerText}
+                careerTags={careerTags}
                 onKeep={onKeep}
                 onDelete={onDelete}
                 onSelectAlternative={onSelectAlternative}

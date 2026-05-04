@@ -49,7 +49,6 @@ def plan_schedule(
     student_id: str,
     selected_days: list[str],
     selected_windows: list[str],
-    course_count: int,
     credit_target: float,
     career_text: str = "",
     career_tags: list[str] | None = None,
@@ -59,12 +58,16 @@ def plan_schedule(
     """Run the full pipeline and return a serialisable result."""
     profile = load_profile(student_id)
 
-    if career_text or career_tags:
-        profile = {
-            **profile,
-            "career_text": career_text or profile.get("career_text", ""),
-            "career_tags": career_tags or profile.get("career_tags", []),
-        }
+    # The request always wins. If the user submits empty career_text and only
+    # tags, do NOT silently fall back to the profile's stored career_text —
+    # that would let the Explainer / Retriever reference text the user never
+    # chose (e.g. profile says "quantitative finance" but user clicked only
+    # the Software Engineer tag).
+    profile = {
+        **profile,
+        "career_text": career_text,
+        "career_tags": career_tags or [],
+    }
 
     if len(selected_days) < 2:
         return {
@@ -91,7 +94,9 @@ def plan_schedule(
         pool = course_retriever.retrieve_candidates(
             requirement=req,
             career_text=profile.get("career_text", ""),
+            career_tags=profile.get("career_tags", []),
             program_key=program_key,
+            completed_courses=profile.get("completed_courses", []),
             selected_days=selected_days,
             selected_windows=selected_windows,
             avoid_departments=avoid_departments,
@@ -101,11 +106,14 @@ def plan_schedule(
 
     plans = schedule_planner.make_plans(
         pools_by_priority,
-        target_count=course_count,
+        profile=profile,
         target_credits=credit_target,
+        selected_days=selected_days,
+        selected_windows=selected_windows,
     )
 
-    primary = plans["plan_a"]["courses"]
+    primary_key = next(iter(plans.keys()))
+    primary = plans[primary_key]["courses"]
 
     alternatives_by_code: dict[str, list[dict]] = {}
     primary_codes = {c["code"] for c in primary}
@@ -129,5 +137,5 @@ def plan_schedule(
         "profile": profile,
         "requirements": requirements,
         "plans": plans,
-        "primary_plan_key": "plan_a",
+        "primary_plan_key": primary_key,
     }
