@@ -41,7 +41,6 @@ export interface Preferences {
   studentId: string;
   preferredDays: string[];
   selectedWindows: TimeWindow[];
-  courseCount: number;
   creditTarget: number;
   careerTags: string[];
   careerText: string;

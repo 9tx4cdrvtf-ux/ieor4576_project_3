@@ -90,29 +90,43 @@ def retrieve_candidates(
     *,
     requirement: dict,
     career_text: str,
+    career_tags: list[str] | None,
     program_key: str,
+    completed_courses: list[str] | None,
     selected_days: list[str],
     selected_windows: list[str],
     avoid_departments: list[str] | None = None,
     instructor_preference: str | None = None,
-    n: int = 25,
+    n: int = 40,
 ) -> list[dict]:
-    """Run a semantic RAG search and return ranked candidates for a bucket."""
+    """Run a semantic RAG search and return ranked candidates for a bucket.
+
+    Career signal: both `career_tags` (chips) and `career_text` (free-form)
+    are folded into the embedding query — previously only career_text was used,
+    which silently dropped the signal whenever the user only clicked tags.
+
+    Program eligibility is a SOFT signal: courses approved for the student's
+    program get a +0.10 score boost, but non-approved courses still appear so
+    cross-discipline interests (e.g. an MSOR student wanting COMS for SWE) can
+    surface. The student is expected to verify approval themselves.
+    """
+    career_tags = career_tags or []
     avoid_departments = [d.upper() for d in (avoid_departments or [])]
+    completed = {c.upper().replace(" ", "") for c in (completed_courses or [])}
     windows = [TIME_WINDOWS[w] for w in selected_windows if w in TIME_WINDOWS]
     day_flags = [DAY_FLAG_BY_NAME[d] for d in selected_days if d in DAY_FLAG_BY_NAME]
 
-    query = f"{requirement.get('label','')}. Career goal: {career_text}".strip()
-    where: dict[str, Any] = {}
-    program_clauses = [{program_key: "elective"}, {program_key: "required"}] if program_key else []
-    if program_clauses:
-        where["$or"] = program_clauses
+    career_query = career_text.strip()
+    if career_tags:
+        career_query = (career_query + " | " if career_query else "") + ", ".join(career_tags)
+    if not career_query:
+        career_query = "(no specific career goal)"
+    query = f"{requirement.get('label', '')}. Career goal: {career_query}".strip()
 
     coll = _collection()
     res = coll.query(
         query_texts=[query],
         n_results=max(n * 2, 30),
-        where=where or None,
     )
 
     docs = res.get("documents", [[]])[0]
@@ -128,6 +142,15 @@ def retrieve_candidates(
         code = (meta.get("course_code") or "").upper()
         if avoid_departments and any(code.startswith(d) for d in avoid_departments):
             continue
+        # Hard filter: don't suggest courses the student has already completed.
+        # `code` is e.g. "IEOR4004" or "COMSW4995"; completed list may be in
+        # either form, so normalize both sides by stripping spaces.
+        normalized_code = code.replace(" ", "")
+        if completed and normalized_code in completed:
+            continue
+        # Many "Topics in ..." sections share a generic course code with vague
+        # descriptions. Skip them unless we explicitly fail to find anything else
+        # — handled by leaving them in but penalizing the score below.
 
         sem_sim = max(0.0, 1.0 - float(dist))
         time_fit = _time_fit(meta, windows) if windows else 0.5
@@ -139,6 +162,28 @@ def retrieve_candidates(
             + 0.10 * _instructor_norm(meta)
             + 0.10 * _seat_norm(meta)
         )
+
+        # Program eligibility — required courses get a bigger boost than
+        # electives, so unmet program requirements naturally float to the top.
+        program_status = (meta.get(program_key) or "").lower() if program_key else ""
+        program_approved = program_status in {"elective", "required"}
+        if program_status == "required":
+            score += 0.20
+        elif program_status == "elective":
+            score += 0.10
+
+        # Discourage generic "Topics" / "Selected Topics" courses — their
+        # course descriptions are placeholders that vary per semester, which
+        # makes both retrieval and explanations unreliable.
+        course_name_upper = (meta.get("course_name") or "").upper()
+        is_topics_course = (
+            "TOPICS IN" in course_name_upper
+            or "SELECTED TOPICS" in course_name_upper
+            or "ADVANCED TOPICS" in course_name_upper
+            or "SPECIAL TOPICS" in course_name_upper
+        )
+        if is_topics_course:
+            score -= 0.15
 
         if instructor_preference and instructor_preference.lower() in (
             (meta.get("instructor") or "").lower()
@@ -165,6 +210,9 @@ def retrieve_candidates(
                 "description_doc": doc,
                 "score": round(score, 4),
                 "semantic_similarity": round(sem_sim, 4),
+                "program_approved": program_approved,
+                "program_status": program_status,
+                "is_topics_course": is_topics_course,
                 "requirement_key": requirement.get("key"),
                 "requirement_label": requirement.get("label"),
             }

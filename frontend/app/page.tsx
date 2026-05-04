@@ -18,7 +18,6 @@ const DEFAULT_PREFS: Preferences = {
   studentId: 'alex_msor',
   preferredDays: ['Monday', 'Wednesday', 'Friday'],
   selectedWindows: ['morning', 'afternoon'],
-  courseCount: 4,
   creditTarget: 12,
   careerTags: [],
   careerText: '',
@@ -33,6 +32,8 @@ export default function HomePage() {
   const [progress, setProgress] = useState<DegreeProgressType[]>(mockDegreeProgress);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rationale, setRationale] = useState<string>('');
+  const [planSource, setPlanSource] = useState<string>('');
 
   useEffect(() => {
     fetchProfiles()
@@ -49,13 +50,18 @@ export default function HomePage() {
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     setError(null);
+    setCourses([]);
+    setRationale('');
+    setPlanSource('');
     try {
       const result = await generateSchedule(preferences);
       setCourses(result.courses);
       setProgress(result.progress);
+      setRationale(result.rationale ?? '');
+      setPlanSource(result.source ?? '');
       if (result.error) setError(result.error);
     } catch (e) {
-      setError(`Generation failed: ${e}`);
+      setError(`${e instanceof Error ? e.message : e}`);
     } finally {
       setIsGenerating(false);
     }
@@ -137,9 +143,21 @@ export default function HomePage() {
           <div className="flex-1 min-w-0 space-y-6">
             <DegreeProgress progress={progress} />
 
+            {rationale && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+                <div className="text-xs font-medium text-primary mb-1">
+                  Planner rationale
+                </div>
+                <p className="text-foreground whitespace-pre-wrap">{rationale}</p>
+              </div>
+            )}
+
             <ScheduleResults
               studentId={preferences.studentId}
               courses={courses}
+              isGenerating={isGenerating}
+              careerText={preferences.careerText}
+              careerTags={preferences.careerTags}
               onKeep={handleKeep}
               onDelete={handleDelete}
               onSelectAlternative={handleSelectAlternative}

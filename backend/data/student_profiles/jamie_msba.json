@@ -11,11 +11,8 @@
     "IEOR4571",
     "IEOR4720",
     "IEOR4523",
-    "IEOR4574",
-    "IEOR4720"
+    "IEOR4574"
   ],
-  "career_tags": ["Data Scientist", "ML Engineer"],
-  "career_text": "Aiming for senior data science / ML engineering roles; want to round out cloud + deployment skills before graduating.",
   "degree_requirements": {
     "required_core": {
       "label": "Required Core",

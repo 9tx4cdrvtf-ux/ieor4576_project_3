@@ -32,7 +32,6 @@ class GenerateRequest(BaseModel):
     student_id: str
     selected_days: list[str]
     selected_windows: list[str]
-    course_count: int = 4
     credit_target: float = 12.0
     career_text: str = ""
     career_tags: list[str] = []
@@ -44,6 +43,8 @@ class ExplainRequest(BaseModel):
     student_id: str
     course: dict
     full_plan: list[dict]
+    career_text: str = ""
+    career_tags: list[str] = []
 
 
 @app.get("/api/profiles")
@@ -61,17 +62,21 @@ def get_profile(student_id: str) -> dict:
 
 @app.post("/api/generate")
 def generate_schedule(req: GenerateRequest) -> dict:
-    return orchestrator.plan_schedule(
-        student_id=req.student_id,
-        selected_days=req.selected_days,
-        selected_windows=req.selected_windows,
-        course_count=req.course_count,
-        credit_target=req.credit_target,
-        career_text=req.career_text,
-        career_tags=req.career_tags,
-        avoid_departments=req.avoid_departments,
-        instructor_preference=req.instructor_preference,
-    )
+    try:
+        return orchestrator.plan_schedule(
+            student_id=req.student_id,
+            selected_days=req.selected_days,
+            selected_windows=req.selected_windows,
+            credit_target=req.credit_target,
+            career_text=req.career_text,
+            career_tags=req.career_tags,
+            avoid_departments=req.avoid_departments,
+            instructor_preference=req.instructor_preference,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:  # planner / LLM / RAG failures
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}")
 
 
 @app.post("/api/explain/stream")
@@ -80,6 +85,15 @@ def explain_stream(req: ExplainRequest) -> StreamingResponse:
         profile = orchestrator.load_profile(req.student_id)
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+    # The student JSONs no longer carry career fields, so we splice in the
+    # user's runtime input here. Without this the Explainer would always say
+    # "no career goal provided" even when the user clicked tags.
+    profile = {
+        **profile,
+        "career_text": req.career_text,
+        "career_tags": req.career_tags,
+    }
 
     def gen():
         try:

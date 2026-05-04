@@ -13,6 +13,8 @@ interface CourseCardProps {
   course: Course;
   studentId: string;
   fullPlan: Course[];
+  careerText: string;
+  careerTags: string[];
   onKeep: (courseId: string) => void;
   onDelete: (courseId: string) => void;
   onSelectAlternative: (courseId: string, alternativeId: string) => void;
@@ -23,6 +25,8 @@ export function CourseCard({
   course,
   studentId,
   fullPlan,
+  careerText,
+  careerTags,
   onKeep,
   onDelete,
   onSelectAlternative,
@@ -38,6 +42,8 @@ export function CourseCard({
       studentId,
       course,
       fullPlan,
+      careerText,
+      careerTags,
       (token) => setStreamed((s) => s + token),
       () => setStreaming(false),
       (msg) => {

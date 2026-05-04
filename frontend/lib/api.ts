@@ -52,7 +52,10 @@ interface BackendGenerateResponse {
     graduation_blocker: boolean;
     priority: number;
   }>;
-  plans: Record<string, { goal: string; courses: BackendCourse[] }>;
+  plans: Record<
+    string,
+    { goal: string; courses: BackendCourse[]; rationale?: string; source?: string }
+  >;
   primary_plan_key: string;
   error?: string;
   kind?: string;
@@ -127,13 +130,14 @@ export async function generateSchedule(prefs: Preferences): Promise<{
   courses: Course[];
   profile: BackendProfile;
   progress: DegreeProgress[];
+  rationale?: string;
+  source?: string;
   error?: string;
 }> {
   const body = {
     student_id: prefs.studentId,
     selected_days: prefs.preferredDays,
     selected_windows: prefs.selectedWindows,
-    course_count: prefs.courseCount,
     credit_target: prefs.creditTarget,
     career_text: prefs.careerText,
     career_tags: prefs.careerTags,
@@ -145,7 +149,16 @@ export async function generateSchedule(prefs: Preferences): Promise<{
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`generate ${res.status}`);
+  if (!res.ok) {
+    let detail = `${res.status}`;
+    try {
+      const errJson = await res.json();
+      detail = errJson.detail || JSON.stringify(errJson);
+    } catch {
+      detail = `${res.status} ${await res.text()}`;
+    }
+    throw new Error(detail);
+  }
   const data: BackendGenerateResponse = await res.json();
   if (data.error) {
     return {
@@ -161,6 +174,8 @@ export async function generateSchedule(prefs: Preferences): Promise<{
     courses: plan.courses.map(backendToCourse),
     profile: data.profile,
     progress: profileToDegreeProgress(data.profile),
+    rationale: plan.rationale,
+    source: plan.source,
   };
 }
 
@@ -168,6 +183,8 @@ export async function streamExplanation(
   studentId: string,
   course: Course,
   fullPlan: Course[],
+  careerText: string,
+  careerTags: string[],
   onToken: (t: string) => void,
   onDone: () => void,
   onError: (msg: string) => void,
@@ -180,6 +197,8 @@ export async function streamExplanation(
         student_id: studentId,
         course: { ...course },
         full_plan: fullPlan,
+        career_text: careerText,
+        career_tags: careerTags,
       }),
     });
     if (!res.body) {

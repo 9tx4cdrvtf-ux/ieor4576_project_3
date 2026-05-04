@@ -92,12 +92,10 @@ export function PreferenceSidebar({
     preferences.selectedWindows.length === 0 ? 'Please select at least one time window.' : null;
 
   const creditWarning = useMemo(() => {
-    const ratio = preferences.creditTarget / preferences.courseCount;
-    if (ratio > 4.5)
-      return `${preferences.courseCount} courses typically cover 12–15 credits — consider adding a course or lowering the credit target.`;
-    if (preferences.creditTarget > 22) return 'Columbia caps semesters at 22 credits.';
+    if (preferences.creditTarget > 18) return 'Above 18 credits is unusually heavy for IEOR MS.';
+    if (preferences.creditTarget < 6) return 'Below 6 credits is below typical full-time load.';
     return null;
-  }, [preferences.creditTarget, preferences.courseCount]);
+  }, [preferences.creditTarget]);
 
   const isHardBlock = Boolean(dayWarning) || Boolean(windowWarning);
   const blocked = isHardBlock || isGenerating;
@@ -206,26 +204,13 @@ export function PreferenceSidebar({
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Course Count: {preferences.courseCount}
-            </Label>
-            <Slider
-              value={[preferences.courseCount]}
-              onValueChange={(v) => set({ courseCount: v[0] })}
-              min={3}
-              max={6}
-              step={1}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
               Credit Target: {preferences.creditTarget}
             </Label>
             <Slider
               value={[preferences.creditTarget]}
               onValueChange={(v) => set({ creditTarget: v[0] })}
-              min={12}
-              max={22}
+              min={0}
+              max={18}
               step={1}
             />
             {creditWarning && (
