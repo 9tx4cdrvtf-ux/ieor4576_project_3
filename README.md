@@ -37,7 +37,7 @@ pnpm dev                                  # http://localhost:3000
 Both LiteLLM and Vertex embeddings need credentials. Set, at minimum:
 
 - `GOOGLE_APPLICATION_CREDENTIALS` — a service account with Vertex AI access
-- `LLM_MODEL` — defaults to `vertex_ai/gemini-1.5-pro`; can be any LiteLLM model id
+- `LLM_MODEL` — defaults to `vertex_ai/gemini-2.5-flash`; can be any LiteLLM model id
 
 ## Project layout
 
