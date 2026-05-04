@@ -24,6 +24,11 @@ in [`frontend/`](./frontend).
 ## Live URL
 **Live URL:** https://coursecompass-web-oxknouw2ta-uc.a.run.app
 
+## Presentation Recording
+**Recording:** https://drive.google.com/file/d/1Xxj_hI2lDP65iKKZl1QNcTBEjaSUHqOi/view?usp=drive_link      
+* Only LionMail (@columbia.edu) accounts have access.
+
+
 ## Quick start
 
 ```bash
