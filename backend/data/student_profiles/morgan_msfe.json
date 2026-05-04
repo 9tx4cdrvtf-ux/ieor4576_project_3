@@ -1,0 +1,42 @@
+{
+  "student_id": "morgan_msfe",
+  "name": "Morgan Wu",
+  "program": "MS Financial Engineering (MSFE)",
+  "program_key": "msfe",
+  "year": 1,
+  "graduation_term": "2026 Fall",
+  "completed_courses": [
+    "IEOR4004",
+    "IEOR4106",
+    "IEOR4700"
+  ],
+  "career_tags": ["Quant", "Research"],
+  "career_text": "Pursuing buy-side quant research; prefer afternoon-concentrated schedule so I can do morning interview prep and reading.",
+  "degree_requirements": {
+    "required_core": {
+      "label": "Required Core",
+      "required_count": 5,
+      "completed_count": 3,
+      "completed_codes": ["IEOR4004", "IEOR4106", "IEOR4700"],
+      "remaining_examples": ["IEOR4709", "IEOR4731"],
+      "graduation_blocker": false
+    },
+    "msfe_electives": {
+      "label": "MSFE Track Electives",
+      "required_count": 4,
+      "completed_count": 0,
+      "completed_codes": [],
+      "remaining_examples": [],
+      "graduation_blocker": false
+    },
+    "non_ieor_electives": {
+      "label": "Approved Non-IEOR Electives",
+      "required_count": 1,
+      "completed_count": 0,
+      "completed_codes": [],
+      "remaining_examples": [],
+      "graduation_blocker": false
+    }
+  },
+  "total_credits": {"required": 36, "completed": 9}
+}

@@ -1,0 +1,45 @@
+{
+  "student_id": "alex_msor",
+  "name": "Alex Chen",
+  "program": "MS Operations Research (MSOR)",
+  "program_key": "msor",
+  "year": 2,
+  "graduation_term": "2026 Spring",
+  "completed_courses": [
+    "IEOR4004",
+    "IEOR4106",
+    "IEOR4500",
+    "IEOR4307",
+    "IEOR4720",
+    "IEOR4511"
+  ],
+  "career_tags": ["Quant", "Software Engineer"],
+  "career_text": "Targeting quantitative finance roles at hedge funds; interested in optimization and stochastic modeling.",
+  "degree_requirements": {
+    "required_core": {
+      "label": "Required Core",
+      "required_count": 3,
+      "completed_count": 3,
+      "completed_codes": ["IEOR4004", "IEOR4106", "IEOR4500"],
+      "remaining_examples": [],
+      "graduation_blocker": false
+    },
+    "ieor_electives": {
+      "label": "IEOR Electives",
+      "required_count": 5,
+      "completed_count": 3,
+      "completed_codes": ["IEOR4307", "IEOR4720", "IEOR4511"],
+      "remaining_examples": ["IEOR4571", "IEOR4574"],
+      "graduation_blocker": true
+    },
+    "non_ieor_electives": {
+      "label": "Approved Non-IEOR Electives",
+      "required_count": 2,
+      "completed_count": 0,
+      "completed_codes": [],
+      "remaining_examples": [],
+      "graduation_blocker": true
+    }
+  },
+  "total_credits": {"required": 30, "completed": 18}
+}

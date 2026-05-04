@@ -1,0 +1,46 @@
+{
+  "student_id": "jamie_msba",
+  "name": "Jamie Lee",
+  "program": "MS Business Analytics (MSBA)",
+  "program_key": "msba",
+  "year": 2,
+  "graduation_term": "2026 Spring",
+  "completed_courses": [
+    "IEOR4004",
+    "IEOR4540",
+    "IEOR4571",
+    "IEOR4720",
+    "IEOR4523",
+    "IEOR4574",
+    "IEOR4720"
+  ],
+  "career_tags": ["Data Scientist", "ML Engineer"],
+  "career_text": "Aiming for senior data science / ML engineering roles; want to round out cloud + deployment skills before graduating.",
+  "degree_requirements": {
+    "required_core": {
+      "label": "Required Core",
+      "required_count": 4,
+      "completed_count": 3,
+      "completed_codes": ["IEOR4004", "IEOR4540", "IEOR4571"],
+      "remaining_examples": ["IEOR4523"],
+      "graduation_blocker": true
+    },
+    "analytics_electives": {
+      "label": "Analytics Electives",
+      "required_count": 3,
+      "completed_count": 2,
+      "completed_codes": ["IEOR4574", "IEOR4720"],
+      "remaining_examples": ["IEOR4576"],
+      "graduation_blocker": true
+    },
+    "non_ieor_electives": {
+      "label": "Approved Non-IEOR Electives",
+      "required_count": 2,
+      "completed_count": 1,
+      "completed_codes": ["COMS4995"],
+      "remaining_examples": [],
+      "graduation_blocker": false
+    }
+  },
+  "total_credits": {"required": 36, "completed": 27}
+}
