@@ -39,6 +39,8 @@ Both LiteLLM and Vertex embeddings need credentials. Set, at minimum:
 - `GOOGLE_APPLICATION_CREDENTIALS` — a service account with Vertex AI access
 - `LLM_MODEL` — defaults to `vertex_ai/gemini-2.5-flash`; can be any LiteLLM model id
 
+# 3. **Live URL:** https://coursecompass-web-oxknouw2ta-uc.a.run.app
+
 ### Deploy to Google Cloud Run
 
 Dockerfiles and a scripted two-service deploy (API + Next.js) are under [`deploy/`](./deploy/). See [`deploy/README.md`](./deploy/README.md).
