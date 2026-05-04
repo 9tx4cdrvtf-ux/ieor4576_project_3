@@ -1,6 +1,77 @@
-# Columbia IEOR Course Selection Assistant
+# CourseCompass — Columbia IEOR Course Selection Assistant
 
-<加一个overview。。。。。。。。。。。。。。。。。>
+CourseCompass is an AI course planning agent for Columbia IEOR MS students. Given a student
+profile (degree progress, completed courses, career goals) and a set of personal scheduling
+constraints (preferred days, time windows, course count, credit target), it generates a
+Spring 2026 schedule and explains each recommendation in natural language.
+
+The system follows the multi-agent architecture in `CourseCompass_PRD_v2.docx`:
+
+```
+  Orchestrator
+       │
+       ├── Requirement Checker  (deterministic priority scoring)
+       ├── Course Retriever     (RAG over ChromaDB + Vertex AI embeddings)
+       ├── Schedule Planner     (conflict detection tool, A/B/C plans)
+       └── Explainer            (streamed per-course rationale via SSE)
+```
+
+The Course Retriever runs against the embedded Spring 2026 course catalog produced by
+[`index_info.py`](./index_info.py); the rest of this README documents how that catalog
+is built. The pipeline itself lives in [`backend/`](./backend), and the frontend lives
+in [`frontend/`](./frontend).
+
+## Quick start
+
+```bash
+# 1. Install Python deps and run the FastAPI backend
+pip install -r backend/requirements.txt
+./backend/run_api.sh                      # http://localhost:8000
+
+# 2. In a second shell, run the Next.js frontend
+cd frontend
+pnpm install
+pnpm dev                                  # http://localhost:3000
+```
+
+Both LiteLLM and Vertex embeddings need credentials. Set, at minimum:
+
+- `GOOGLE_APPLICATION_CREDENTIALS` — a service account with Vertex AI access
+- `LLM_MODEL` — defaults to `vertex_ai/gemini-1.5-pro`; can be any LiteLLM model id
+
+## Project layout
+
+```
+backend/
+  agents/
+    orchestrator.py          # task decomposition + sub-agent dispatch
+    requirement_checker.py   # priority scoring (deterministic)
+    course_retriever.py      # RAG semantic search + hard filters
+    schedule_planner.py      # conflict detection tool, plans A/B/C
+    explainer.py             # streamed per-course explanation
+  api/main.py                # FastAPI: /api/profiles, /api/generate, /api/explain/stream
+  data/student_profiles/     # 3 pre-defined IEOR MS student profiles
+  utils/llm_client.py        # LiteLLM abstraction (chat / chat_json / stream)
+frontend/
+  app/page.tsx               # main dashboard
+  components/                # PreferenceSidebar, DegreeProgress, ScheduleCalendar, CourseCard
+  lib/api.ts                 # backend client
+  lib/calendar-export.ts     # .ics download for Spring 2026 (Jan 20 – May 4)
+chroma_db/                   # persistent Chroma collection (built by index_info.py)
+web_scrawl/                  # raw scrapes + cleaning script for Spring 2026 catalog
+index_info.py                # one-time embedding script for the course catalog
+```
+
+## Class concepts mapping
+
+| Concept                        | Where it lives                                    |
+| ------------------------------ | ------------------------------------------------- |
+| Multi-agent orchestration      | `backend/agents/orchestrator.py`                  |
+| RAG                            | `backend/agents/course_retriever.py` + `chroma_db/` |
+| Tool use / function calling    | `backend/agents/schedule_planner.py::detect_conflicts` |
+| Structured output              | `backend/api/main.py` (Pydantic models)           |
+| Streaming                      | `backend/api/main.py::/api/explain/stream` (SSE)  |
+| LiteLLM provider abstraction   | `backend/utils/llm_client.py`                     |
 
 ---
 

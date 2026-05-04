@@ -5,3 +5,12 @@ __pycache__/
 .env
 .DS_Store
 .streamlit/secrets.toml
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env*
+
+# Python
+backend/__pycache__/
+backend/**/__pycache__/
