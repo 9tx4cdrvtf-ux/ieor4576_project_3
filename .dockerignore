@@ -1,0 +1,14 @@
+.git
+.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.claude
+b_MuAdo7ALql7
+node_modules
+frontend/node_modules
+frontend/.next
+*.md
+.DS_Store
+web_scrawl
+__pycache__
