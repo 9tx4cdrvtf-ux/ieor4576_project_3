@@ -33,8 +33,12 @@ From the **repository root**:
 export GCP_PROJECT=YOUR_PROJECT_ID
 export GCP_REGION=us-central1          # optional
 export LLM_MODEL=vertex_ai/gemini-2.5-flash   # optional
+# Optional: planner A/B/C plans (script default matches PRD three plans)
+export PLANS_TO_GENERATE=plan_a,plan_b,plan_c
 ./deploy/gcp-deploy.sh
 ```
+
+After you merge new backend or frontend code, **re-run the same script** so Cloud Build picks up the latest `Dockerfile`s and source. The web image is always rebuilt with the current API URL as `NEXT_PUBLIC_API_BASE`.
 
 The script will:
 

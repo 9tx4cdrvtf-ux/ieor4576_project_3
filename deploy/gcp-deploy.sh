@@ -14,6 +14,7 @@
 #   export GCP_PROJECT=your-project-id
 #   export GCP_REGION=us-central1          # optional
 #   export LLM_MODEL=vertex_ai/gemini-2.5-flash   # optional
+#   export PLANS_TO_GENERATE=plan_a,plan_b,plan_c   # optional (default in script)
 #   ./deploy/gcp-deploy.sh
 
 set -euo pipefail
@@ -25,6 +26,8 @@ cd "$ROOT"
 GCP_REGION="${GCP_REGION:-us-central1}"
 LLM_MODEL="${LLM_MODEL:-vertex_ai/gemini-2.5-flash}"
 VERTEX_LOCATION="${VERTEX_LOCATION:-$GCP_REGION}"
+# Match PRD §7.5 (A/B/C). Code default is plan_a only; Cloud Run sets all three.
+PLANS_TO_GENERATE="${PLANS_TO_GENERATE:-plan_a,plan_b,plan_c}"
 API_SERVICE="${API_SERVICE:-coursecompass-api}"
 WEB_SERVICE="${WEB_SERVICE:-coursecompass-web}"
 AR_REPO="${AR_REPO:-coursecompass}"
@@ -47,6 +50,9 @@ gcloud builds submit --config=deploy/cloudbuild-api.yaml \
   --project="${GCP_PROJECT}" \
   .
 
+# Use ^@^ so PLANS_TO_GENERATE can contain commas (gcloud treats comma as pair sep by default).
+API_ENV_VARS="^@^LLM_MODEL=${LLM_MODEL}@CHROMA_PATH=/app/chroma_db@GOOGLE_CLOUD_PROJECT=${GCP_PROJECT}@VERTEXAI_LOCATION=${VERTEX_LOCATION}@PLANS_TO_GENERATE=${PLANS_TO_GENERATE}"
+
 API_DEPLOY_FLAGS=(
   --image="${API_IMAGE}"
   --region="${GCP_REGION}"
@@ -54,8 +60,8 @@ API_DEPLOY_FLAGS=(
   --allow-unauthenticated
   --memory=2Gi
   --cpu=2
-  --timeout=300
-  --set-env-vars="LLM_MODEL=${LLM_MODEL},CHROMA_PATH=/app/chroma_db,GOOGLE_CLOUD_PROJECT=${GCP_PROJECT},VERTEXAI_LOCATION=${VERTEX_LOCATION}"
+  --timeout=900
+  --set-env-vars="${API_ENV_VARS}"
 )
 if [[ -n "${CLOUD_RUN_SERVICE_ACCOUNT:-}" ]]; then
   API_DEPLOY_FLAGS+=(--service-account="${CLOUD_RUN_SERVICE_ACCOUNT}")
