@@ -21,6 +21,9 @@ The Course Retriever runs against the embedded Spring 2026 course catalog produc
 is built. The pipeline itself lives in [`backend/`](./backend), and the frontend lives
 in [`frontend/`](./frontend).
 
+## Live URL
+**Live URL:** https://coursecompass-web-oxknouw2ta-uc.a.run.app
+
 ## Quick start
 
 ```bash
@@ -39,7 +42,7 @@ Both LiteLLM and Vertex embeddings need credentials. Set, at minimum:
 - `GOOGLE_APPLICATION_CREDENTIALS` — a service account with Vertex AI access
 - `LLM_MODEL` — defaults to `vertex_ai/gemini-2.5-flash`; can be any LiteLLM model id
 
-# 3. **Live URL:** https://coursecompass-web-oxknouw2ta-uc.a.run.app
+
 
 ### Deploy to Google Cloud Run
 
