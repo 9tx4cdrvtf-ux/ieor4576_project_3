@@ -28,6 +28,9 @@ in [`frontend/`](./frontend).
 **Recording:** https://drive.google.com/file/d/1Xxj_hI2lDP65iKKZl1QNcTBEjaSUHqOi/view?usp=drive_link      
 * Only LionMail (@columbia.edu) accounts have access.
 
+## Business Document
+* `business_doc.md`
+
 
 ## Quick start
 
