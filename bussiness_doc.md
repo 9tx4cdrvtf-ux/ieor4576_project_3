@@ -35,16 +35,15 @@ CourseCompass solves this by acting as an always-available, constraint-aware cou
 | Avg tokens per turn — output | ~500 |
 | Total input tokens per student-month | ~30,000 |
 | Total output tokens per student-month | ~7,500 |
-| Input cost @ $1.25 / 1M tokens | ~$0.038 |
-| Output cost @ $10.00 / 1M tokens | ~$0.075 |
-| **LLM cost per student-month** | **~$0.11** |
+| Input cost @ $0.30 / 1M tokens | ~$0.009 |
+| Output cost @ $2.50 / 1M tokens | ~$0.019 |
+| **LLM cost per student-month** | **~$0.028** |
 | ChromaDB hosting (amortized per user) | ~$0.02 |
 | Infrastructure (Cloud Run, amortized) | ~$0.03 |
-| **Total cost to serve per student-month** | **~$0.16** |
+| **Total cost to serve per student-month** | **~$0.078** |
 | Revenue per student-month ($12,000 / 500 students / 12 months) | **~$2.00** |
-| **Gross margin** | **~92%** |
+| **Gross margin** | **~96%** |
 
-The model breaks if output token volume spikes — at \$10.00/1M, verbose multi-turn responses are the primary cost driver. A single session that generates 5,000 output tokens costs \$0.05 in LLM fees alone, so response length must be kept concise by design. The model also breaks if the contract is negotiated below ~\$5,000/year, at which point margins compress but unit economics still hold at reduced scale.
 
 
 
@@ -55,13 +54,13 @@ The model breaks if output token volume spikes — at \$10.00/1M, verbose multi-
 
 Every technical decision in CourseCompass was made to serve this specific user accurately and cheaply.
 
-**RAG over full-context injection.** The course catalog contains ~400 sections with rich descriptions. Injecting the entire catalog into every prompt would cost roughly 80,000–100,000 input tokens per query — approximately $0.10 per turn in input costs alone, making the unit economics unworkable. Instead, ChromaDB indexes all course sections, and the retriever pulls back only the top candidates per query (default `n=40`, before post-filtering). This reduces per-turn context by over 90%.
+**RAG over full-context injection.** RAG over full-context injection. The course catalog contains ~300 sections with rich descriptions. Although Gemini 2.5 Flash supports a massive context window, injecting the entire catalog into every prompt would still be inefficient and increase latency. By using ChromaDB to index sections and retrieving only the top candidates (default n=40), we keep the prompt lean and fast, ensuring sub-second "Time to First Token" (TTFT) which is a core advantage of the Flash model.
 
 **Vertex AI `text-embedding-005` for retrieval.** Rather than a generic off-the-shelf embedding model, CourseCompass uses Google's `text-embedding-005` via a custom Chroma embedding function. This keeps the entire stack on Google Cloud (Vertex AI for both embeddings and the Gemini generation model), simplifying auth and latency, and produces higher-quality embeddings for academic course descriptions than smaller open-source alternatives.
 
 **Semantic search with Python-layer post-filtering.** Hard constraints — selected days, time windows, avoided departments, completed courses — are enforced in Python after the vector search returns results, rather than as Chroma `where` pre-filters. The retriever deliberately pulls `n*2` candidates to absorb the attrition from filtering. This design was chosen because the constraint inputs arrive as structured UI selections (not natural language), making rule-based filtering more reliable than embedding constraint text into the query and hoping the vector search respects it.
 
 
-**Output length discipline.** Given Gemini 1.5 Pro's output pricing of $10.00/1M tokens — eight times the input rate — output verbosity is the dominant cost risk. The Explainer agent streams responses via SSE, which improves perceived responsiveness, but the system prompt instructs the model to return structured, concise per-course explanations rather than lengthy prose. This keeps typical output per turn under 500 tokens, which is the assumption the unit economics above depend on.
+**Output length discipline.** Despite Gemini 2.5 Flash's low cost, output length is still managed to maintain a clean UX. The Explainer agent uses SSE to stream responses, while the system prompt instructs the model to provide structured, concise reasoning. This ensures that even with the model's high throughput, the user receives actionable information without "wall-of-text" fatigue.
 
 **Structured UI inputs eliminate a query-parsing layer.** Because students select constraints through dropdowns and toggles rather than typing free-form text, CourseCompass does not need a separate LLM call to parse "I don't want early mornings" into `time_start >= 9.0`. This saves one LLM call per session — roughly $0.005–0.010 per user-month at current pricing — and eliminates an entire category of parsing errors.
