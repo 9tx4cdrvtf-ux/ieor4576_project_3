@@ -11,7 +11,12 @@ import {
   ProfileSummary,
 } from '@/lib/types';
 import { mockDegreeProgress } from '@/lib/mock-data';
-import { fetchProfiles, generateSchedule } from '@/lib/api';
+import {
+  fetchProfile,
+  fetchProfiles,
+  generateSchedule,
+  profileToDegreeProgress,
+} from '@/lib/api';
 import { GraduationCap } from 'lucide-react';
 
 const DEFAULT_PREFS: Preferences = {
@@ -46,6 +51,20 @@ export default function HomePage() {
       .catch((e) => setError(`Could not load profiles: ${e}`));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchProfile(preferences.studentId)
+      .then((p) => {
+        if (!cancelled) setProgress(profileToDegreeProgress(p));
+      })
+      .catch((e) => {
+        if (!cancelled) setError(`Could not load degree progress: ${e}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [preferences.studentId]);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
