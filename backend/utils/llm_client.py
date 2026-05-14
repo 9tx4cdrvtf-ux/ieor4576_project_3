@@ -10,8 +10,8 @@ import json
 import os
 from typing import Any, Iterator
 
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "vertex_ai/gemini-1.5-pro")
-FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "gpt-4o-mini")
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "vertex_ai/gemini-2.5-flash")
+FALLBACK_MODEL = os.getenv("LLM_FALLBACK_MODEL", "vertex_ai/gemini-2.5-flash")
 
 
 def _completion(messages: list[dict], model: str | None = None, **kwargs: Any) -> str:
